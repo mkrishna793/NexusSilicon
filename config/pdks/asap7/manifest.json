@@ -1,0 +1,22 @@
+{
+  "name": "asap7",
+  "dbu_per_micron": 4000,
+  "technology_lef": "../../../benchmarks/asap7_tech.lef",
+  "cell_lefs": [
+    "../../../benchmarks/asap7_cells.lef"
+  ],
+  "liberty_corners": {
+    "typical": "../../../benchmarks/asap7_typical.lib"
+  },
+  "routing_layers": [
+    "M1",
+    "M2",
+    "M3",
+    "M4"
+  ],
+  "via_rules": "vias.json",
+  "rcx_rules": "rules.rcx",
+  "layer_map": "layer_map.json",
+  "drc_deck": "drc.lydrc",
+  "lvs_deck": "lvs.lylvs"
+}

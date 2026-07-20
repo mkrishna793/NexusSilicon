@@ -1,0 +1,11 @@
+library(asap7_typical) {
+  delay_model : table_lookup;
+  in_place_swap_mode : match_footprint;
+  
+  cell(AND2x1) {
+    area : 0.0192;
+    pin(A) { direction : input; }
+    pin(B) { direction : input; }
+    pin(Y) { direction : output; }
+  }
+}

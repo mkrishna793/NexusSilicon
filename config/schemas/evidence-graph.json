@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvidenceGraph",
+  "type": "object",
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["rtl_symbol", "constraint", "cell", "instance", "net", "route", "timing_path", "pdk_rule", "finding", "artifact"] },
+          "display_name": { "type": "string" },
+          "source": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 0 },
+              "column": { "type": "integer", "minimum": 0 },
+              "end_line": { "type": "integer", "minimum": 0 },
+              "end_column": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["file", "line", "column", "end_line", "end_column"]
+          }
+        },
+        "required": ["id", "kind", "display_name"]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string" },
+          "relation": { "type": "string" }
+          ,"to": { "type": "string" }
+        },
+        "required": ["from", "relation", "to"]
+      }
+    }
+  },
+  "required": ["schema_version", "entities", "edges"]
+}

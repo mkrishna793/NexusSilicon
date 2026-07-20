@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "name": "yosys",
+      "role": "logic synthesis",
+      "repository": "https://github.com/YosysHQ/yosys.git",
+      "ref": "main",
+      "submodules": true
+    },
+    {
+      "name": "verible",
+      "role": "SystemVerilog AST and language server",
+      "repository": "https://github.com/chipsalliance/verible.git",
+      "ref": "master",
+      "submodules": true
+    },
+    {
+      "name": "opensta",
+      "role": "static timing analysis",
+      "repository": "https://github.com/The-OpenROAD-Project/OpenSTA.git",
+      "ref": "master",
+      "submodules": true
+    },
+    {
+      "name": "cudd",
+      "role": "BDD dependency required by OpenSTA",
+      "repository": "https://github.com/cuddorg/cudd.git",
+      "ref": "main",
+      "submodules": false
+    },
+    {
+      "name": "openrcx",
+      "role": "parasitic extraction",
+      "repository": "https://github.com/The-OpenROAD-Project/OpenRCX.git",
+      "ref": "master",
+      "submodules": true
+    },
+    {
+      "name": "openroad",
+      "role": "OpenDB host for the OpenRCX extraction adapter only",
+      "repository": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
+      "ref": "master",
+      "submodules": true
+    },
+    {
+      "name": "klayout",
+      "role": "layout inspection, DRC, and stream-out adapter",
+      "repository": "https://github.com/KLayout/klayout.git",
+      "ref": "master",
+      "submodules": false
+    },
+    {
+      "name": "magic",
+      "role": "layout verification adapter",
+      "repository": "https://github.com/RTimothyEdwards/magic.git",
+      "ref": "master",
+      "submodules": false
+    }
+  ]
+}

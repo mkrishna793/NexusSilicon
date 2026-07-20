@@ -1,0 +1,24 @@
+{
+  "name": "sky130",
+  "dbu_per_micron": 1000,
+  "technology_lef": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/lef/sky130_fd_sc_hd.tlef",
+  "cell_lefs": [
+    "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/lef/sky130_fd_sc_hd_merged.lef"
+  ],
+  "liberty_corners": {
+    "typical": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+  },
+  "routing_layers": [
+    "li1",
+    "met1",
+    "met2",
+    "met3",
+    "met4",
+    "met5"
+  ],
+  "via_rules": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/lef/sky130_fd_sc_hd.tlef",
+  "rcx_rules": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hs/rcx_patterns.rules",
+  "layer_map": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/sky130hd.lyt",
+  "drc_deck": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/drc/sky130hd.lydrc",
+  "lvs_deck": "../../../third_party/src/openroad-flow-scripts/flow/platforms/sky130hd/lvs/sky130hd.lylvs"
+}

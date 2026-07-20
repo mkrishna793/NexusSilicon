@@ -1,0 +1,10 @@
+design: gcd
+top: gcd
+pdk: sky130
+rtl:
+  - rtl/gcd.sv
+constraints: constraints/gcd.sdc
+clock:
+  name: clk
+  period_ns: 1.0
+outputs: results
