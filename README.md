@@ -1,196 +1,250 @@
-# Metric Field Engine — Developer Preview v0.1
+# NexusSilicon
 
-MFE is an evidence-first RTL-to-layout research flow.  Its custom physical core owns floorplanning, placement, thermal analysis, CTS orchestration, and detailed-route topology.  Yosys, OpenROAD/OpenRCX, OpenSTA, and KLayout are adapters around that core—not replacements for it.
+> **A physics-native, evidence-first open-source chip-design flow.**
 
-**Status:** developer preview. It is useful for reproducible experiments and AI-assisted diagnosis. It is not foundry-qualified, signoff-ready, or suitable for tapeout.
+NexusSilicon is building a new kind of EDA platform: one where the physical-design engine is explainable by design, and where AI investigates structured engineering evidence instead of guessing from thousands of lines of tool logs.
 
-## What works today
-
-- RTL synthesis through Yosys into a mapped netlist.
-- MFE placement and pin-aware, same-layer rectilinear Steiner routing.
-- DEF output, OpenRCX parasitic extraction, and real OpenSTA timing reports.
-- Evidence graphs linking instances, nets, routes, timing paths, findings, and reviewed ECO proposals.
-- Read-only AI CLI supporting offline evidence answers or an OpenAI-compatible local/remote endpoint.
-- C++20 core plus 17 CTest checks.
-
-## Architecture: what makes NexusSilicon different
-
-NexusSilicon is not an OpenROAD wrapper. MFE owns the physical-design decisions; external projects are used through explicit file contracts only where they provide a mature specialized capability.
-
-```mermaid
-flowchart LR
-  RTL["RTL / SystemVerilog"] --> SYN["Yosys synthesis"]
-  SYN --> NET["Mapped netlist + source links"]
-  NET --> MFE["MFE physical core\nplacement · thermal · CTS · Steiner routing"]
-  MFE --> DEF["Routed DEF"]
-  DEF --> RCX["OpenROAD/OpenRCX host\nparasitic extraction only"]
-  RCX --> SPEF["SPEF"]
-  SPEF --> STA["OpenSTA timing"]
-  STA --> EVIDENCE["Evidence graph + reviewed ECO plan"]
-  MFE --> EVIDENCE
-  EVIDENCE --> AGENT["Read-only AI CLI"]
-  MFE --> STREAM["GDSII / OASIS prototype stream"]
-```
-
-### MFE physical core
-
-MFE provides the project-specific innovation:
-
-- **Metric-field / optimal-transport placement** for geometry-aware movement of cells.
-- **Thermal co-design** so temperature evidence is available alongside placement evidence.
-- **DME clock-tree infrastructure** and a deterministic physical flow contract.
-- **LEF-pin-aware routing** on the exact pin-access layer.
-- **Rectilinear Steiner topology** for multi-pin nets: a median trunk and merged branches avoid the serial-chain routes and redundant loops typical of a simple demo router.
-- **Evidence graph** links RTL symbols, mapped cells, placed instances, nets, routes, timing findings, and ECO proposals. The model queries this database; it does not need to guess by reading raw logs.
-
-### External adapters
-
-| Adapter | Role in NexusSilicon | Not used for |
-|---|---|---|
-| Yosys | RTL synthesis and standard-cell mapping | MFE placement/routing |
-| Verible | SystemVerilog AST/lint integration target | physical implementation |
-| OpenROAD/OpenRCX | OpenDB host and RC extraction | placement, CTS, routing |
-| OpenSTA | path timing from Liberty, SDC, and SPEF | physical optimization decisions |
-| KLayout / Magic | verification adapter boundary | MFE core algorithms |
-
-## Flow stages and artifacts
-
-1. **Frontend** — Verible/Yosys analyze RTL and create `mapped_netlist.v`.
-2. **Physical compilation** — MFE imports the netlist and PDK LEF, floorplans, places, legalizes, evaluates thermal state, creates route topology, and writes `routed.def`.
-3. **Extraction** — OpenRCX reads the MFE DEF through OpenDB and emits `design.spef`.
-4. **Timing** — OpenSTA runs with Liberty, SDC, mapped netlist, and SPEF to produce `timing.rpt`.
-5. **Reasoning** — MFE converts violations into `timing-evidence.json` and produces a review-only `eco-plan.json`.
-6. **Verification boundary** — KLayout/Magic adapters receive stream/physical artifacts. Their results are never represented as signoff unless the relevant deck and complete layout requirements are genuinely met.
-
-Typical generated artifacts:
+At its heart is the **Metric Field Engine (MFE)**—a custom physical-design core for placement, thermal co-design, clock-tree infrastructure, and routing topology. Around MFE, NexusSilicon connects proven open-source tools for synthesis, parasitic extraction, timing analysis, and verification through open industry formats.
 
 ```text
-projects/gcd_demo/results/
-├── frontend/mapped_netlist.v
-├── physical/routed.def
-├── physical/design.spef
-├── physical/evidence-graph.json
-├── timing/timing.rpt
-├── timing/timing-evidence.json
-└── timing/eco-plan.json
+Build chips with physics. Debug them with evidence.
 ```
 
-## Quick start: core and offline AI
+## Why NexusSilicon?
 
-Prerequisites: CMake 3.20+, a C++20 compiler, Eigen3, Python 3.10+.
+Chip design is one of the most powerful engineering disciplines in the world, but modern RTL-to-layout flows remain difficult to inspect, difficult to automate, and difficult for new engineers to learn. A failure can begin in RTL, appear as timing loss after placement, and become buried under reports across multiple tools.
+
+NexusSilicon is designed to make that chain visible.
+
+- **Physical decisions are owned by MFE**, not hidden behind a black-box orchestration script.
+- **Every important artifact becomes evidence**: RTL symbol → synthesized cell → placed instance → net → route → RC → timing path → finding.
+- **AI starts from the evidence graph**, so it can answer *what failed, where, why, what is safe to try, and what will be affected*.
+- **PDK configuration is manifest-driven**, creating a clean path to support multiple technology definitions without hard-coding one node into the engine.
+- **Open formats stay central**: SystemVerilog, LEF, Liberty, DEF, SPEF, SDC, GDSII, and OASIS.
+
+This is not another wrapper that simply calls an existing place-and-route tool. NexusSilicon uses external projects where they are mature specialists, while MFE remains the physical-intelligence core.
+
+## The MFE core
+
+The Metric Field Engine is the reason NexusSilicon exists. It is a custom C++20 engine built around geometry, fields, and structured physical evidence.
+
+| MFE capability | Purpose |
+|---|---|
+| Metric-field / optimal-transport placement | Move cells using geometry-aware physical objectives. |
+| Thermal co-design | Keep thermal state available alongside placement and routing evidence. |
+| DME clock-tree infrastructure | Provide a deterministic foundation for clock skew balancing. |
+| LEF-pin-aware routing | Route from real cell-pin access geometry rather than generic cell centers. |
+| Rectilinear Steiner topology | Build compact multi-pin route trees instead of simple serial route chains. |
+| Evidence graph | Trace design intent and physical consequences across every stage. |
+| Reviewed ECO planning | Turn actual timing failures into explicit, safe-to-review experiments. |
+
+The current Sky130 demonstration uses MFE routes, then validates the exported DEF through real OpenRCX extraction and OpenSTA timing analysis.
+
+## Evidence-first AI
+
+Most “AI for EDA” ideas give an LLM raw logs and hope for the best. NexusSilicon takes a different route.
+
+The flow produces a compact JSON evidence graph. An agent can navigate deterministic relationships instead of rediscovering them from text:
+
+```text
+RTL symbol
+  → synthesized standard cell
+    → physical instance
+      → net
+        → route
+          → extracted parasitics
+            → timing path
+              → finding
+                → reviewed ECO proposal
+```
+
+The included AI CLI is intentionally **read-only**. It can explain results, expose the relevant path, and recommend a next experiment. It never silently edits RTL, constraints, placement, routing, or layout.
 
 ```powershell
-git clone <your-repository-url> mfe
-cd mfe
-cmake -S . -B build
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-
-# Query existing evidence without sending data to a model.
+# Deterministic local explanation: no model call, no data leaves your machine.
 .\tools\mfe.ps1 ask -Project .\projects\gcd_demo\project.yaml `
   -Question "Why did timing fail?" -Offline
 ```
 
-## AI CLI
-
-The assistant is deliberately read-only. It can explain evidence and recommend an experiment; it cannot alter RTL, constraints, placement, routing, or ECO files.
+It can also use any OpenAI-compatible endpoint, including a local model server:
 
 ```powershell
-# Offline deterministic evidence answer
-.\tools\mfe.ps1 ask -Project .\projects\gcd_demo\project.yaml `
-  -Question "What is the critical timing path?" -Offline
-
-# Any OpenAI-compatible endpoint, including a local model server.
 $env:MFE_LLM_BASE_URL = "http://localhost:11434/v1"
 $env:MFE_LLM_MODEL = "your-local-model"
-# Optional only when the provider requires it:
-$env:MFE_LLM_API_KEY = "..."
 .\tools\mfe.ps1 ask -Project .\projects\gcd_demo\project.yaml `
-  -Question "What is a safe next experiment?"
+  -Question "What is the safest next timing experiment?"
 ```
 
-## Full Sky130 demonstration flow
+## Architecture
 
-The full flow requires separately installed open-source tools and Sky130 assets; they are intentionally not committed to this repository. Bootstrap source trees with:
+```mermaid
+flowchart LR
+  RTL["RTL / SystemVerilog"] --> YOSYS["Yosys\nlogic synthesis"]
+  YOSYS --> NETLIST["Mapped netlist\n+ source links"]
+  NETLIST --> MFE["Metric Field Engine\nfloorplan · placement · thermal\nCTS infrastructure · Steiner routing"]
+  MFE --> DEF["Routed DEF"]
+  DEF --> RCX["OpenROAD + OpenRCX\nRC extraction host"]
+  RCX --> SPEF["SPEF parasitics"]
+  SPEF --> STA["OpenSTA\nstatic timing"]
+  STA --> EVIDENCE["Evidence graph\nfindings · ECO plan"]
+  MFE --> EVIDENCE
+  EVIDENCE --> AI["NexusSilicon AI CLI\nread-only reasoning"]
+  MFE --> LAYOUT["GDSII / OASIS\nstream artifacts"]
+```
+
+### What each external tool does
+
+NexusSilicon does not use OpenROAD for MFE’s placement or routing. The tool boundary is deliberate.
+
+| Component | Role inside the flow |
+|---|---|
+| **Yosys** | Translates RTL into a standard-cell mapped netlist. |
+| **Verible** | SystemVerilog parsing, linting, AST/LSP integration target. |
+| **MFE** | Owns physical compilation: placement, thermal data, routing topology, physical evidence. |
+| **OpenROAD/OpenRCX** | Hosts OpenDB and extracts RC parasitics from the MFE DEF. |
+| **OpenSTA** | Calculates timing using Liberty, SDC, mapped netlist, and SPEF. |
+| **KLayout / Magic** | Verification integration boundary. |
+
+## What happens in a run
+
+1. **Understand RTL** — parse/lint SystemVerilog and synthesize it to mapped gates.
+2. **Create a physical database** — import LEF cell geometry, net connections, and source links into MFE.
+3. **Compile the physical design** — floorplan, place, legalize, calculate thermal context, prepare CTS, and create pin-aware Steiner routes.
+4. **Export interoperable artifacts** — write DEF, stream-layout artifacts, and MFE evidence.
+5. **Extract reality from geometry** — OpenRCX converts routed shapes into resistance/capacitance parasitics in SPEF.
+6. **Measure timing** — OpenSTA reports setup/hold paths and slack.
+7. **Reason safely** — MFE produces timing findings and reviewed ECO proposals; the AI CLI makes the chain understandable.
+
+```text
+RTL → mapped netlist → MFE physical flow → DEF → RCX/SPEF → STA → evidence → AI explanation
+```
+
+## Quick start
+
+### Build the portable core
+
+Requirements:
+
+- CMake 3.20 or newer
+- C++20 compiler
+- Eigen3
+- Python 3.10 or newer (for the AI CLI test and assistant)
 
 ```powershell
+git clone https://github.com/mkrishna793/NexusSilicon.git
+cd NexusSilicon
+
+cmake -S . -B build
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+The core test suite includes physical-flow, evidence-graph, manifest, timing-ECO, and AI-CLI tests.
+
+### Ask the project about itself
+
+```powershell
+.\tools\mfe.ps1 ask -Project .\projects\gcd_demo\project.yaml `
+  -Question "Show the current timing findings" -Offline
+```
+
+### Run the full Sky130 demonstration
+
+The complete demonstration needs optional open-source tool sources and PDK assets. They are not committed into the repository; this keeps the project lightweight and respects each dependency’s license.
+
+```powershell
+# Fetch third-party source repositories declared in the toolchain manifest.
 .\tools\bootstrap-third-party.ps1
-```
 
-Build/install the tools documented under `tools/`, then configure the required WSL OpenROAD path through `MFE_OPENROAD_WSL` when it differs from the default. Run:
+# Build/install optional tools as described under tools/.
+# Set this only when your WSL OpenROAD build is not at the documented default:
+$env:MFE_OPENROAD_WSL = "/home/<user>/openroad/build/bin/openroad"
 
-```powershell
 .\tools\mfe.ps1 flow -Project .\projects\gcd_demo\project.yaml
 ```
 
-The generated files are under `projects/gcd_demo/results/`: mapped netlist, routed DEF, SPEF, timing report, ECO plan, and evidence graphs.
+The output directory contains mapped RTL, routed DEF, SPEF, timing reports, evidence graphs, and reviewed ECO plans:
 
-### PDK portability
+```text
+projects/gcd_demo/results/
+├── frontend/
+│   └── mapped_netlist.v
+├── physical/
+│   ├── routed.def
+│   ├── design.spef
+│   └── evidence-graph.json
+└── timing/
+    ├── timing.rpt
+    ├── timing-evidence.json
+    └── eco-plan.json
+```
 
-PDK manifests use paths relative to the manifest itself. Adding a PDK means supplying a technology LEF, cell LEF, Liberty corner, routing-layer order, RC extraction rules, and verification deck references in `config/pdks/<pdk>/manifest.json`. The manifest is the portability boundary: MFE logic does not hard-code a particular node or foundry.
+## PDK-driven by design
 
-## Safety and current limits
+A PDK is described by `config/pdks/<name>/manifest.json`. The manifest declares technology LEF, cell LEF, Liberty corners, routing layers, RC extraction rules, and verification references. Paths are resolved relative to the manifest, so projects can move between machines without embedding one developer’s directory structure.
 
-- No automatic ECO application: every change must be reviewed, then re-placed, re-routed, re-extracted, re-timed, and validated.
-- Mixed-layer PDK via insertion, DRC repair, real standard-cell-reference GDS/OASIS, and true LVS are future work.
-- Public PDK data and each third-party tool retain their own licenses; see their upstream projects before redistribution.
+This separation is important: MFE’s logic remains technology-neutral while the rules and assets of a PDK remain explicit, auditable configuration.
 
-## Repository layout
-
-- `apps/`, `include/`, `src/` — MFE C++ core and CLI.
-- `config/` — PDK manifests and JSON evidence contracts.
-- `projects/gcd_demo/` — example RTL project.
-- `tools/` — build adapters, flow entrypoint, and AI CLI.
-- `tests/` — unit, integration, flow, and agent CLI tests.
+## Repository guide
 
 ```text
 NexusSilicon/
-├── apps/mfe/                 # C++ command-line application
-├── include/mfe/              # public engine interfaces
-├── src/                      # MFE implementation: placement, route, IO, evidence, ECO
-├── config/pdks/              # PDK manifests and schemas
-├── projects/gcd_demo/        # reproducible example project
-├── tools/flow/               # RTL-to-physical orchestration
-├── tools/adapters/           # Yosys, STA, RCX, DRC/LVS boundaries
-├── tools/agent/              # evidence-first AI CLI
-├── docs/                     # architecture and release status
-└── tests/                    # CTest and AI CLI verification
+├── apps/mfe/                 # MFE C++ command-line application
+├── include/mfe/              # engine interfaces
+├── src/                      # placement, routing, IO, evidence, ECO implementation
+├── config/                   # schemas and PDK manifests
+├── projects/gcd_demo/        # runnable SystemVerilog example
+├── benchmarks/               # open benchmark fixtures
+├── tools/flow/               # flow orchestrator
+├── tools/adapters/           # external-tool contracts
+├── tools/agent/              # evidence-first AI assistant
+├── docs/                     # architecture and release documents
+├── tests/                    # unit, integration, flow, and agent tests
+└── third_party/toolchain.json# declared optional upstream dependencies
 ```
 
 ## Roadmap
 
-### v0.1 — Developer Preview (this release)
+### v0.1 — Developer Preview
 
-- Reproducible C++ core, manifests, test suite, CI, example project, and read-only AI evidence assistant.
-- Real synthesis/extraction/timing adapter path where optional tools and PDK assets are installed.
-- Explicit safety boundary: no fabricated timing, no automatic changes, no tapeout claim.
+The current release establishes the stable foundations: MFE core, portable manifests, evidence contracts, a read-only AI interface, reproducible tests, CI, and an open RTL-to-timing demonstration.
 
-### v0.2 — Physical correctness
+### v0.2 — Physical correctness and route quality
 
-- Parse PDK via geometry and insert legal mixed-layer transitions.
-- Track-grid and spacing-aware detailed routing with congestion feedback.
-- Replace heuristic route topology with timing/congestion-weighted Steiner refinement.
-- Ingest DRC results into findings and evidence graph; generate reviewed route-repair proposals.
+- PDK-derived legal via insertion for mixed-layer nets.
+- Track-grid, spacing-aware detailed routing and congestion feedback.
+- Timing/congestion-weighted Steiner refinement.
+- DRC finding ingestion and reviewed route-repair proposals.
 
-### v0.3 — Closed-loop optimization
+### v0.3 — Closed-loop physical optimization
 
-- PDK-legal candidate-cell selection for ECO sizing/buffering.
-- Transactional ECO sandbox: edit → place → route → RCX → STA → validate → compare.
-- Apply only changes that improve the target metric and preserve legality.
-- Add power/IR and thermal constraints to multi-objective optimization.
+- PDK-legal gate resizing and buffer candidates.
+- Transactional ECO sandbox: modify → place → route → extract → time → validate.
+- Automatic comparison of metrics, with human approval before applying a winning change.
+- Power, IR-drop, and thermal objectives combined with timing and routability.
 
 ### v0.4 — Layout and verification maturity
 
-- Standard-cell-reference GDSII/OASIS assembly, correct layer/datatype map, pins, labels, and vias.
-- Technology-complete DRC repair loop and true layout-versus-schematic flow.
-- Regression benchmarks across multiple openly distributable PDKs.
+- Standard-cell-reference GDSII/OASIS assembly.
+- Correct layer/datatype mapping, vias, pins, and labels.
+- DRC-repair and real LVS integration with reproducible evidence.
 
-### v1.0 — Collaboration platform
+### v1.0 — Open collaboration platform
 
-- Stable project and PDK plugin APIs.
-- Rich local/web UI built on the same evidence graph.
-- Reproducible run bundles, experiment comparison, permissions, and human approval workflows.
+- Stable plugin interfaces for PDKs, tools, and AI providers.
+- Local/web visualization built directly on the same evidence graph.
+- Reproducible experiment bundles and team approval workflows.
+
+## Current status
+
+NexusSilicon is an open-source **developer preview**—a serious engineering foundation, not a tapeout claim. It already demonstrates MFE physical routing, real parasitic extraction, real timing analysis, structured evidence, and safe AI investigation. The remaining verification and signoff-grade capabilities are tracked openly in the roadmap rather than hidden behind marketing language.
 
 ## Contributing
 
-Run `ctest --test-dir build --output-on-failure` before opening a pull request. Do not commit build outputs, PDK installations, secrets, generated layout files, or model credentials.
+Contributions are welcome. Start with a test, preserve the file-format contracts, and keep every physical or AI action explainable.
+
+```powershell
+ctest --test-dir build --output-on-failure
+```
+
+Please do not commit generated builds, PDK installations, tool binaries, secrets, or model credentials. See [NOTICE.md](NOTICE.md) for third-party dependency guidance and [LICENSE](LICENSE) for the project license.
